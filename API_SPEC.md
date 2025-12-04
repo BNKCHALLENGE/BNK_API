@@ -42,9 +42,9 @@ GET /users/me
 POST /users/me/preferences
 ```
 
-**Headers**
+**Headers*
 | Key | Value | Required |
-|-----|-------|----------|
+|-----|-------|----------|d
 | Authorization | Bearer {token} | ✅ |
 | Content-Type | application/json | ✅ |
 

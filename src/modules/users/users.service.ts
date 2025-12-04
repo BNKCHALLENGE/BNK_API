@@ -27,7 +27,7 @@ export class UsersService {
       categories,
       isOnboardingComplete: categories.length > 0,
     };
-    await this.usersRepository.update(user.id, { preferences });
+    await this.usersRepository.update(user.id, { preferences: preferences as any });
     return preferences;
   }
 
