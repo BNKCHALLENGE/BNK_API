@@ -1,7 +1,7 @@
 ﻿import { Injectable, Logger } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 
-const firebaseKey = require('../../firebase-key.json');
+const firebaseKey = require('../../../firebase-key.json');
 
 @Injectable()
 export class NotificationService {

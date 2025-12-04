@@ -23,7 +23,7 @@ export class NotificationController {
     @Body('userId') userId: number,
     @Body('token') token: string,
   ) {
-    console.log(`💾 [DB 저장] User ${userId}의 토큰을 저장합니다: ${token}`);
+    console.log(`[DB 저장] User ${userId}의 토큰을 저장합니다: ${token}`);
     
     // TODO: 나중에 DB 연결
     // await this.usersRepository.update(userId, { fcmToken: token });
