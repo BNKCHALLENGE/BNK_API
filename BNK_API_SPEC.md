@@ -1,111 +1,75 @@
-# BNK Backend API (BNK_API_SPEC.md)
+﻿# BNK API 엔드포인트 명세
 
-본 문서는 현재 백엔드가 반환하는 응답 형태를 정리하고, 기존 `API_SPEC.md` 대비 변경/차이점을 명시합니다. 모든 엔드포인트는 글로벌 프리픽스 `/v1`가 적용됩니다. 인증은 전역 `AuthGuard`로 `Authorization: Bearer <userId>` 형식을 요구합니다.
+- 기본 도메인: `https://bnk-api.up.railway.app`
+- 공통 Prefix: `/v1`
+- 인증: 전역 `AuthGuard` 적용. `Authorization: Bearer user-1` 형태.
+  - 요청 처리용 userId: `user-1` → ML 전송 시 `U0001`으로 변환됨.
+- 카테고리 변환: DB/ML은 PascalCase(예: `Food`), 프론트 응답은 소문자(예: `food`).
+- 미션 ID 변환: DB/ML은 `M001`, 프론트는 `mission-1`.
 
-## Health
-- **GET** `/v1/health`
-- **Response**: `"ok"`
-- **Notes**: 헬스 체크용.
+## 헬스 체크
+- `GET /v1/health`
+  - 응답: `{ success: true, data: 'ok' }` (TransformInterceptor)
 
 ## Users
-- **GET** `/v1/users/me`
-  - **Response**: `UserResponseDto`
-    - `id: string` (예: `user-1`)
-    - `name: string`
-    - `profileImageUrl: string | null`
-    - `gender?: string` (M/F)
-    - `age?: number`
-    - `acceptanceRate: number`
-    - `activeTimeSlot: string`
-    - `coinBalance: number`
-    - `preferences: { categories: string[]; isOnboardingComplete: boolean }`
-  - **Notes**: `preferences.categories`는 API 카테고리 소문자 포맷.
-
-- **GET** `/v1/users/me/preferences`
-  - **Response**: `{ categories: string[]; isOnboardingComplete: boolean }`
-
-- **POST** `/v1/users/me/preferences`
-  - **Body**: `{ categories: string[] }`
-  - **Response**: `{ categories: string[]; isOnboardingComplete: boolean }`
+- `GET /v1/users/me`
+  - 반환: 사용자 정보 + 코인 잔액
+  - 응답 데이터 예: `{ id, name, profileImageUrl, gender, age, coinBalance, preferences:{ categories, isOnboardingComplete }, acceptanceRate, activeTimeSlot }`
+- `POST /v1/users/me/preferences`
+  - Body: `{ categories: string[] }`
+  - 반환: 저장된 preferences
+- `GET /v1/users/me/preferences`
+  - 반환: 현재 preferences
 
 ## Missions
-- **GET** `/v1/missions`
-  - **Query**: `category?` (API 소문자 → ML 변환), `sort?` (`distance`|`popular`|`recent`), `page?`, `limit?`
-  - **Response**: `{ missions: MissionResponseDto[]; pagination: { currentPage, totalPages, totalCount, hasNext } }`
-
-- **GET** `/v1/missions/:missionId`
-  - **Param**: `missionId` (API 포맷 `mission-1`, 내부 ML로 변환)
-  - **Response**: `MissionResponseDto`
-
-- **POST** `/v1/missions/:missionId/like`
-  - **Response**: `{ isLiked: boolean; likeCount: number }`
-
-- **POST** `/v1/missions/:missionId/participate`
-  - **Response**: `{ participationId: string; status: string; startedAt: ISOString }`
-
-- **POST** `/v1/missions/:missionId/complete`
-  - **Body**: `{ success: boolean }`
-  - **Response**: `{ missionId: string; userId: string; status: string; reward: number; coinBalance: number }`
-
-- **GET** `/v1/missions/ai-recommend`
-  - **Query**: `lat: number`, `lon: number`, `limit?: number`
-  - **Response**: `MissionResponseDto[]`
-  - **Notes**: ML 추천 결과 순서대로 반환. 실패 시 인기 미션 fallback.
-
-### MissionResponseDto (API 응답)
-- `id: string` (API 포맷, 예: `mission-1`)
-- `title: string`
-- `imageUrl: string` (placeholder 가능)
-- `location: string | null`
-- `locationDetail: string | null`
-- `distance: string` (예: `"1.2km"`)
-- `coinReward: number`
-- `category: string` (API 소문자)
-- `endDate: string | null`
-- `insight: string | null`
-- `verificationMethods: string[]`
-- `coordinates?: { lat: number; lng: number }`
-- `isLiked: boolean`
-- `participationStatus?: 'in_progress' | 'completed' | 'failed' | null`
-- `completedAt?: string | null`
-- `modelProba?: number` (ML 점수)
-- `finalScore?: number` (ML 점수)
-- `distanceMeters?: number` (ML distance_m 또는 DB distance)
-
-### ID/Category 변환
-- **missionId**: API `mission-#` ↔ ML `M###`
-- **category**: ML PascalCase ↔ API lowercase (Food→food, Tourist→tour, Self-Dev→study 등)
-- **userId**: API `user-#` → ML `U####` (ML 호출 시만)
+- `GET /v1/missions`
+  - Query: `category?`(소문자; 내부에서 ML 카테고리로 변환), `page?`, `limit?`, `sort?`
+  - 응답: MissionResponseDto[]
+    - 주요 필드: `id(mission-1 형식)`, `title`, `imageUrl`, `location`, `locationDetail`, `distance("1.2km")`, `coinReward`, `category`(소문자), `endDate`, `insight`, `verificationMethods`, `coordinates`, `isLiked`, `participationStatus|null`, `completedAt|null`, `modelProba?`, `finalScore?`
+- `GET /v1/missions/:missionId`
+  - `missionId`: `mission-#` 형식(내부 변환 후 조회)
+  - 응답: MissionResponseDto (상동)
+- `POST /v1/missions/:missionId/like`
+  - 반환: `{ isLiked: boolean, likeCount: number }`
+- `POST /v1/missions/:missionId/participate`
+  - 반환: `{ participationId, status, startedAt }`
+- `POST /v1/missions/:missionId/complete`
+  - Body: `{ success: boolean }`
+  - 성공 시 코인 적립/실패 시 상태만 변경
+  - 반환: `{ missionId, userId, status, reward, coinBalance }`
+- `GET /v1/missions/ai-recommend`
+  - Query: `lat`, `lon`, `limit?`
+  - 동작: ML 서버 호출 → 추천 ID(ML 형식) → DB 조회 → API 응답 변환
+  - 응답: MissionResponseDto[] (추천 순서 유지, distance 문자열, modelProba/finalScore 포함)
 
 ## Categories
-- **GET** `/v1/categories`
-  - **Response**: `{ id, name, isActive }[]` (API 카테고리 소문자)
-  - **Notes**: DB에는 ML 카테고리(PascalCase) 저장, 응답 시 변환.
+- `GET /v1/categories`
+  - 응답: 카테고리 목록 (id/name 모두 소문자 API 형식)
 
 ## Notifications
-- **POST** `/v1/notifications/send`
-  - **Body**: `{ token: string; title: string; body: string }`
-  - **Response**: `{ status: 'sent' }`
-
-- **POST** `/v1/notifications/register`
-  - **Body**: `{ userId?: string; token: string }`
-  - **Response**: `{ status: 'registered' }`
-  - **Notes**: 기본은 AuthGuard userId 사용. DB에 fcmToken 저장.
-
-- **POST** `/v1/notifications/broadcast-challenge`
-  - **Body**: `{ title?: string; body?: string }`
-  - **Response**: `{ status: 'sent'|'no_tokens'; sentCount: number }`
-  - **Notes**: FCM 토큰 보유 모든 유저에게 브로드캐스트.
+- `POST /v1/notifications/send`
+  - Body: `{ token, title, body }`
+  - 단일 FCM 토큰 테스트 발송
+- `POST /v1/notifications/register`
+  - Body: `{ token, userId? }` (없으면 인증된 userId 사용)
+  - 동작: 유저 fcmToken 저장 → `{ status: 'registered' }`
+- `POST /v1/notifications/broadcast-challenge`
+  - Body(옵션): `{ title?, body? }`
+  - 동작: fcmToken이 있는 모든 유저에게 일괄 발송 → `{ status: 'sent' | 'no_tokens', sentCount }`
 
 ## Tabs
-- **GET** `/v1/tabs`
-  - **Response**: `TabItem[]` (정적 목 데이터)
-  - `TabItem`: `{ id: string; name: string; isActive: boolean; hasNotification?: boolean }`
+- `GET /v1/tabs`
+  - 응답: 명세서의 탭 JSON (모킹 데이터)
 
-## 주요 변경사항 / API_SPEC 대비 차이
-- 미션 ID는 응답 시 `mission-#`로 변환, 내부/DB는 `M###` 사용.
-- 카테고리 응답은 API 소문자로 변환됨. DB/ML은 PascalCase.
-- `MissionResponseDto`에 ML 점수(`modelProba`, `finalScore`) 포함될 수 있음. API_SPEC에서 언급 없다면 프런트 무시 가능.
-- `distance`는 `<km>km` 문자열로 제공, `distanceMeters` 필드는 ML 결과나 DB 값의 수치.
-- `imageUrl`, `location`, `endDate`, `insight`, `verificationMethods`는 빈 값/placeholder가 반환될 수 있음 (ML에 없는 필드 보완).
-- `current_day_of_week`, `user_id` 등 ML 호출 시 변환/정규화된 값 사용 (프런트에는 노출되지 않음).
+---
+
+## 변환/규칙 요약
+- 미션 ID: 응답 `mission-#`, 입력 `mission-#` → 내부 `M###`
+- 카테고리: 응답 소문자(api), 내부/ML PascalCase
+- 거리: DB 숫자(m 단위) → 응답 문자열 `"<km>km"` (소수점 1자리)
+- 날짜/시간: ISO 문자열 사용
+- ML 호출 시 `current_day_of_week`는 숫자 0(월)~6(일)로 변환
+
+## 누락/추가 확인 메모
+- 위 목록은 모든 controller 데코레이터 기준으로 수집됨. 추가 엔드포인트 없음.
+- API_SPEC.md와 비교 시: 미션 응답에 ML 추천 필드(`modelProba`, `finalScore`)가 추가 노출될 수 있음(프론트가 사용하지 않으면 무시 가능).
