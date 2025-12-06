@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { MissionsService } from './missions.service';
 import {
@@ -18,13 +18,15 @@ export class MissionsController {
   }
 
   @Get()
-  getMissions(@Query() query: MissionsQueryDto) {
-    return this.missionsService.getMissions(query);
+  getMissions(@Req() req: Request, @Query() query: MissionsQueryDto) {
+    const userId = (req as any).user?.id;
+    return this.missionsService.getMissions(userId, query);
   }
 
   @Get(':missionId')
-  getMissionById(@Param() params: MissionIdParamDto) {
-    return this.missionsService.getMissionById(params);
+  getMissionById(@Req() req: Request, @Param() params: MissionIdParamDto) {
+    const userId = (req as any).user?.id;
+    return this.missionsService.getMissionById(userId, params);
   }
 
   @Post(':missionId/like')
@@ -37,5 +39,15 @@ export class MissionsController {
   participateMission(@Req() req: Request, @Param() params: MissionIdParamDto) {
     const userId = (req as any).user?.id;
     return this.missionsService.participateInMission(userId, params);
+  }
+
+  @Post(':missionId/complete')
+  completeMission(
+    @Req() req: Request,
+    @Param() params: MissionIdParamDto,
+    @Body('success') success: boolean,
+  ) {
+    const userId = (req as any).user?.id;
+    return this.missionsService.completeMission(userId, params.missionId, success);
   }
 }

@@ -25,6 +25,9 @@ export class MissionParticipation {
   @Column({ type: 'timestamptz', name: 'participated_at' })
   participatedAt!: Date;
 
+  @Column({ type: 'timestamptz', name: 'completed_at', nullable: true })
+  completedAt?: Date | null;
+
   @ManyToOne(() => Mission, (mission) => mission.participations, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'mission_id' })
   mission!: Mission;

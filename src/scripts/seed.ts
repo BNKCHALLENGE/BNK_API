@@ -27,7 +27,8 @@ const users: User[] = [
     name: '채수원',
     gender: 'male',
     age: 25,
-    profileImageUrl: 'https://example.com/profile-chaesuwon.jpg',
+    profileImageUrl: 'https://example.com/profile-1.jpg',
+    coinBalance: 0,
     preferences: {
       categories: [],
       isOnboardingComplete: false,
@@ -39,7 +40,8 @@ const users: User[] = [
     name: '박보은',
     gender: 'female',
     age: 22,
-    profileImageUrl: 'https://example.com/profile-boeun.jpg',
+    profileImageUrl: 'https://example.com/profile-2.jpg',
+    coinBalance: 0,
     preferences: {
       categories: [],
       isOnboardingComplete: false,
@@ -51,7 +53,8 @@ const users: User[] = [
     name: '윤민석',
     gender: 'male',
     age: 60,
-    profileImageUrl: 'https://example.com/profile-minseok.jpg',
+    profileImageUrl: 'https://example.com/profile-3.jpg',
+    coinBalance: 0,
     preferences: {
       categories: [],
       isOnboardingComplete: false,

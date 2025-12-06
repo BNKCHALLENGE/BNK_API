@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { UserResponseDto } from './users.types';
 
 export interface UserPreferences {
   categories: string[];
@@ -15,8 +16,25 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
   ) {}
 
-  async getCurrentUser(userId: string): Promise<User> {
-    return this.getUserOrThrow(userId);
+  async getCurrentUser(userId: string): Promise<UserResponseDto> {
+    const user = await this.getUserOrThrow(userId);
+    const prefs = (user.preferences as any) ?? {
+      categories: [],
+      isOnboardingComplete: false,
+    };
+
+    return {
+      id: user.id,
+      name: user.name,
+      profileImageUrl: user.profileImageUrl,
+      gender: user.gender ?? undefined,
+      age: user.age ?? undefined,
+      coinBalance: user.coinBalance ?? 0,
+      preferences: {
+        categories: prefs.categories ?? [],
+        isOnboardingComplete: !!prefs.isOnboardingComplete,
+      },
+    };
   }
 
   async setPreferences(userId: string, categories: string[]): Promise<UserPreferences> {

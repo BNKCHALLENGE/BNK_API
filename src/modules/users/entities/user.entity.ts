@@ -19,6 +19,9 @@ export class User {
   @Column({ type: 'int', nullable: true })
   age?: number;
 
+  @Column({ type: 'int', name: 'coin_balance', default: 0 })
+  coinBalance!: number;
+
   @Column({ type: 'jsonb', nullable: true })
   preferences?: Record<string, any>;
 

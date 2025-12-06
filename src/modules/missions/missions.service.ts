@@ -11,6 +11,7 @@ import { Mission } from './entities/mission.entity';
 import { MissionLike } from './entities/mission-like.entity';
 import { MissionParticipation } from './entities/mission-participation.entity';
 import { AiRecommendationService } from './ai-recommendation.service';
+import { User } from '../users/entities/user.entity';
 
 export interface MissionsListResponse {
   missions: MissionResponseDto[];
@@ -64,7 +65,7 @@ export class MissionsService {
     return fallback.map((mission) => this.toMissionResponseDto(mission));
   }
 
-  async getMissions(query: MissionsQueryDto): Promise<MissionsListResponse> {
+  async getMissions(userId: string | undefined, query: MissionsQueryDto): Promise<MissionsListResponse> {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 10;
 
@@ -95,8 +96,12 @@ export class MissionsService {
     const [missions, totalCount] = await qb.getManyAndCount();
     const totalPages = Math.ceil(totalCount / limit);
 
+    const participationMap = await this.getParticipationMap(userId, missions.map((m) => m.id));
+
     return {
-      missions: missions.map((mission) => this.toMissionResponseDto(mission)),
+      missions: missions.map((mission) =>
+        this.toMissionResponseDto(mission, participationMap.get(mission.id)),
+      ),
       pagination: {
         currentPage: page,
         totalPages,
@@ -106,14 +111,15 @@ export class MissionsService {
     };
   }
 
-  async getMissionById(params: MissionIdParamDto): Promise<MissionResponseDto> {
+  async getMissionById(userId: string | undefined, params: MissionIdParamDto): Promise<MissionResponseDto> {
     const mission = await this.missionsRepository.findOne({
       where: { id: params.missionId },
     });
     if (!mission) {
       throw new NotFoundException('Mission not found');
     }
-    return this.toMissionResponseDto(mission);
+    const participation = await this.getParticipationForMission(userId, mission.id);
+    return this.toMissionResponseDto(mission, participation);
   }
 
   async likeMission(userId: string, params: MissionIdParamDto) {
@@ -177,7 +183,54 @@ export class MissionsService {
     };
   }
 
-  private toMissionResponseDto(mission: Mission): MissionResponseDto {
+  async completeMission(userId: string, missionId: string, success: boolean) {
+    return this.missionsRepository.manager.transaction(async (manager) => {
+      const mission = await manager.findOne(Mission, { where: { id: missionId } });
+      if (!mission) {
+        throw new NotFoundException('Mission not found');
+      }
+
+      const participation = await manager.findOne(MissionParticipation, {
+        where: { missionId, userId },
+      });
+      if (!participation) {
+        throw new BadRequestException('No participation found for this mission');
+      }
+
+      if (participation.status === 'completed') {
+        throw new BadRequestException('Mission already completed');
+      }
+
+      const user = await manager.findOne(User, { where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (success) {
+        participation.status = 'completed';
+        participation.completedAt = new Date();
+        user.coinBalance = (user.coinBalance ?? 0) + mission.coinReward;
+        await manager.save([participation, user]);
+      } else {
+        participation.status = 'failed';
+        participation.completedAt = null;
+        await manager.save(participation);
+      }
+
+      return {
+        missionId: mission.id,
+        userId,
+        status: participation.status,
+        reward: success ? mission.coinReward : 0,
+        coinBalance: user.coinBalance ?? 0,
+      };
+    });
+  }
+
+  private toMissionResponseDto(
+    mission: Mission,
+    participation?: MissionParticipation,
+  ): MissionResponseDto {
     return {
       id: mission.id,
       title: mission.title,
@@ -192,6 +245,8 @@ export class MissionsService {
       verificationMethods: mission.verificationMethods ?? [],
       coordinates: mission.coordinates,
       isLiked: mission.isLiked,
+      participationStatus: participation?.status ?? null,
+      completedAt: participation?.completedAt ? participation.completedAt.toISOString() : null,
     };
   }
 
@@ -206,5 +261,29 @@ export class MissionsService {
       .take(limit);
 
     return qb.getMany();
+  }
+
+  private async getParticipationMap(
+    userId: string | undefined,
+    missionIds: string[],
+  ): Promise<Map<string, MissionParticipation>> {
+    if (!userId || missionIds.length === 0) {
+      return new Map();
+    }
+    const participations = await this.missionParticipationsRepository.find({
+      where: { userId, missionId: In(missionIds) },
+    });
+    return new Map(participations.map((p) => [p.missionId, p]));
+  }
+
+  private async getParticipationForMission(
+    userId: string | undefined,
+    missionId: string,
+  ): Promise<MissionParticipation | null> {
+    if (!userId) return null;
+    const participation = await this.missionParticipationsRepository.findOne({
+      where: { userId, missionId },
+    });
+    return participation ?? null;
   }
 }

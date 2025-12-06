@@ -31,4 +31,6 @@ export interface MissionResponseDto {
     lng: number;
   };
   isLiked: boolean;
+  participationStatus?: 'in_progress' | 'completed' | 'failed' | null;
+  completedAt?: string | null;
 }
