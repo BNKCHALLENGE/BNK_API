@@ -29,6 +29,8 @@ export class UsersService {
       profileImageUrl: user.profileImageUrl,
       gender: user.gender ?? undefined,
       age: user.age ?? undefined,
+      acceptanceRate: user.acceptanceRate ?? 0,
+      activeTimeSlot: user.activeTimeSlot ?? 'Day',
       coinBalance: user.coinBalance ?? 0,
       preferences: {
         categories: prefs.categories ?? [],

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+﻿import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import {
@@ -10,8 +10,11 @@ import {
 import { Mission } from './entities/mission.entity';
 import { MissionLike } from './entities/mission-like.entity';
 import { MissionParticipation } from './entities/mission-participation.entity';
-import { AiRecommendationService } from './ai-recommendation.service';
+import { AiRecommendationService, RecommendationResult, UserContext } from './ai-recommendation.service';
 import { User } from '../users/entities/user.entity';
+import { toApiCategory, toMlCategory } from './category-transform.util';
+import { apiIdToMlId, mlIdToApiId } from './mission-id.transform';
+import { userIdToMlId } from './user-id.transform';
 
 export interface MissionsListResponse {
   missions: MissionResponseDto[];
@@ -33,29 +36,36 @@ export class MissionsService {
     private readonly missionLikesRepository: Repository<MissionLike>,
     @InjectRepository(MissionParticipation)
     private readonly missionParticipationsRepository: Repository<MissionParticipation>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
     private readonly aiRecommendationService: AiRecommendationService,
   ) {}
 
   async getAiRecommendations(userId: string, query: AiRecommendQueryDto): Promise<MissionResponseDto[]> {
-    const resolvedUserId = query.userId || userId;
+    const resolvedUserId = userId;
     const limit = query.limit && query.limit > 0 ? query.limit : 5;
 
-    let recommendedIds: string[] = [];
-    try {
-      recommendedIds = await this.aiRecommendationService.getRecommendedMissionIds(resolvedUserId, limit);
-    } catch {
-      recommendedIds = [];
-    }
+    const userContext = resolvedUserId
+      ? await this.buildUserContext(resolvedUserId, Number(query.lat), Number(query.lon))
+      : null;
 
-    if (recommendedIds.length) {
+    const recommendations: RecommendationResult[] = userContext
+      ? await this.aiRecommendationService.getRecommendations(userContext, limit)
+      : [];
+
+    if (recommendations.length) {
+      const missionIds = recommendations.map((r) => r.mission_id);
       const missions = await this.missionsRepository.find({
-        where: { id: In(recommendedIds) },
+        where: { id: In(missionIds) },
       });
       const missionMap = new Map(missions.map((m) => [m.id, m]));
-      const ordered = recommendedIds
-        .map((id) => missionMap.get(id))
-        .filter((m): m is Mission => !!m)
-        .map((mission) => this.toMissionResponseDto(mission));
+      const ordered = recommendations
+        .map((rec) => {
+          const mission = missionMap.get(rec.mission_id);
+          if (!mission) return null;
+          return this.toMissionResponseDto(mission, undefined, rec);
+        })
+        .filter((m): m is MissionResponseDto => !!m);
       if (ordered.length) {
         return ordered;
       }
@@ -72,7 +82,10 @@ export class MissionsService {
     const qb = this.missionsRepository.createQueryBuilder('mission');
 
     if (query.category) {
-      qb.andWhere('mission.category = :category', { category: query.category });
+      const mlCategory = toMlCategory(query.category);
+      if (mlCategory) {
+        qb.andWhere('mission.category = :category', { category: mlCategory });
+      }
     }
 
     switch (query.sort) {
@@ -112,8 +125,9 @@ export class MissionsService {
   }
 
   async getMissionById(userId: string | undefined, params: MissionIdParamDto): Promise<MissionResponseDto> {
+    const mlMissionId = apiIdToMlId(params.missionId) ?? params.missionId;
     const mission = await this.missionsRepository.findOne({
-      where: { id: params.missionId },
+      where: { id: mlMissionId },
     });
     if (!mission) {
       throw new NotFoundException('Mission not found');
@@ -123,8 +137,9 @@ export class MissionsService {
   }
 
   async likeMission(userId: string, params: MissionIdParamDto) {
+    const mlMissionId = apiIdToMlId(params.missionId) ?? params.missionId;
     const mission = await this.missionsRepository.findOne({
-      where: { id: params.missionId },
+      where: { id: mlMissionId },
     });
     if (!mission) {
       throw new NotFoundException('Mission not found');
@@ -154,8 +169,9 @@ export class MissionsService {
   }
 
   async participateInMission(userId: string, params: MissionIdParamDto) {
+    const mlMissionId = apiIdToMlId(params.missionId) ?? params.missionId;
     const mission = await this.missionsRepository.findOne({
-      where: { id: params.missionId },
+      where: { id: mlMissionId },
     });
     if (!mission) {
       throw new NotFoundException('Mission not found');
@@ -184,14 +200,15 @@ export class MissionsService {
   }
 
   async completeMission(userId: string, missionId: string, success: boolean) {
+    const mlMissionId = apiIdToMlId(missionId) ?? missionId;
     return this.missionsRepository.manager.transaction(async (manager) => {
-      const mission = await manager.findOne(Mission, { where: { id: missionId } });
+      const mission = await manager.findOne(Mission, { where: { id: mlMissionId } });
       if (!mission) {
         throw new NotFoundException('Mission not found');
       }
 
       const participation = await manager.findOne(MissionParticipation, {
-        where: { missionId, userId },
+        where: { missionId: mlMissionId, userId },
       });
       if (!participation) {
         throw new BadRequestException('No participation found for this mission');
@@ -229,24 +246,30 @@ export class MissionsService {
 
   private toMissionResponseDto(
     mission: Mission,
-    participation?: MissionParticipation,
+    participation?: MissionParticipation | null,
+    recommendation?: RecommendationResult,
   ): MissionResponseDto {
+    const distanceMeters = recommendation?.distance_m ?? mission.distance ?? 0;
+    const distance = `${(distanceMeters / 1000).toFixed(1)}km`;
     return {
-      id: mission.id,
+      id: mlIdToApiId(mission.id) ?? mission.id,
       title: mission.title,
-      imageUrl: mission.imageUrl,
-      location: mission.location,
+      imageUrl: mission.imageUrl ?? 'https://example.com/placeholder.jpg',
+      location: mission.location ?? 'Busan',
       locationDetail: mission.locationDetail,
-      distance: `${(mission.distance / 1000).toFixed(1)}km`,
+      distance,
       coinReward: mission.coinReward,
-      category: mission.category,
+      category: toApiCategory(mission.category) ?? mission.category,
       endDate: mission.endDate,
       insight: mission.insight,
       verificationMethods: mission.verificationMethods ?? [],
       coordinates: mission.coordinates,
       isLiked: mission.isLiked,
-      participationStatus: participation?.status ?? null,
+      participationStatus: participation ? participation.status : null,
       completedAt: participation?.completedAt ? participation.completedAt.toISOString() : null,
+      modelProba: recommendation?.model_proba,
+      finalScore: recommendation?.final_score,
+      distanceMeters,
     };
   }
 
@@ -286,4 +309,36 @@ export class MissionsService {
     });
     return participation ?? null;
   }
+
+  private async buildUserContext(
+    userId: string,
+    userLat?: number,
+    userLon?: number,
+  ): Promise<UserContext | null> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) return null;
+    const prefs = (user.preferences as any) ?? {};
+    const jsDay = new Date().getDay(); // 0=Sun .. 6=Sat
+    const mlDay = (jsDay + 6) % 7; // 0=Mon .. 6=Sun
+    return {
+      user_id: userIdToMlId(user.id) ?? user.id,
+      age: user.age ?? undefined,
+      gender: user.gender ?? undefined,
+      user_lat: userLat,
+      user_lon: userLon,
+      pref_tags: Array.isArray(prefs.categories)
+        ? prefs.categories.map(toMlCategory).filter((c): c is string => !!c)
+        : [],
+      acceptance_rate: user.acceptanceRate ?? 0,
+      active_time_slot: user.activeTimeSlot ?? 'Day',
+      current_day_of_week: mlDay,
+      current_weather: getRandomWeather(),
+    };
+  }
 }
+
+function getRandomWeather(): string {
+  const weathers = ['Sunny', 'Cloudy', 'Rainy', 'Snowy'];
+  return weathers[Math.floor(Math.random() * weathers.length)];
+}
+

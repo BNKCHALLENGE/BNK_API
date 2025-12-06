@@ -5,6 +5,7 @@ import { Mission } from '../modules/missions/entities/mission.entity';
 import { MissionLike } from '../modules/missions/entities/mission-like.entity';
 import { MissionParticipation } from '../modules/missions/entities/mission-participation.entity';
 import { User } from '../modules/users/entities/user.entity';
+import { toApiCategory } from '../modules/missions/category-transform.util';
 
 const dataSource = new DataSource({
   type: 'postgres',
@@ -19,236 +20,138 @@ const dataSource = new DataSource({
 });
 
 /* -----------------------------
-   1. User Dummy Data
+   1) Users
 ----------------------------- */
 const users: User[] = [
   {
     id: 'user-1',
     name: '채수원',
-    gender: 'male',
-    age: 25,
+    gender: 'M',
+    age: 22,
     profileImageUrl: 'https://example.com/profile-1.jpg',
+    acceptanceRate: 0.1,
+    activeTimeSlot: 'Day',
     coinBalance: 0,
-    preferences: {
-      categories: [],
-      isOnboardingComplete: false,
-    },
+    preferences: { categories: [], isOnboardingComplete: false },
     fcmToken: null,
   },
   {
     id: 'user-2',
     name: '박보은',
-    gender: 'female',
+    gender: 'F',
     age: 22,
     profileImageUrl: 'https://example.com/profile-2.jpg',
+    acceptanceRate: 0.2,
+    activeTimeSlot: 'Day',
     coinBalance: 0,
-    preferences: {
-      categories: [],
-      isOnboardingComplete: false,
-    },
+    preferences: { categories: [], isOnboardingComplete: false },
     fcmToken: null,
   },
   {
     id: 'user-3',
     name: '윤민석',
-    gender: 'male',
+    gender: 'M',
     age: 60,
     profileImageUrl: 'https://example.com/profile-3.jpg',
+    acceptanceRate: 0.05,
+    activeTimeSlot: 'Day',
     coinBalance: 0,
-    preferences: {
-      categories: [],
-      isOnboardingComplete: false,
-    },
+    preferences: { categories: [], isOnboardingComplete: false },
     fcmToken: null,
   },
 ];
 
 /* -----------------------------
-   2. Category Dummy Data
+   2) Categories
 ----------------------------- */
 const categories: Category[] = [
   { id: 'food', name: '맛집', isActive: true },
-  { id: 'cafe', name: '카페', isActive: false },
-  { id: 'tour', name: '관광', isActive: false },
-  { id: 'festival', name: '축제', isActive: false },
-  { id: 'study', name: '공부', isActive: false },
-  { id: 'exercise', name: '운동', isActive: false },
-  { id: 'exhibition', name: '전시', isActive: false },
-  { id: 'sports', name: '스포츠', isActive: false },
+  { id: 'cafe', name: '카페', isActive: true },
+  { id: 'tour', name: '관광', isActive: true },
+  { id: 'culture', name: '문화', isActive: true },
+  { id: 'festival', name: '축제', isActive: true },
+  { id: 'walk', name: '산책', isActive: true },
+  { id: 'shopping', name: '쇼핑', isActive: true },
+  { id: 'study', name: '공부', isActive: true },
+  { id: 'sports', name: '스포츠', isActive: true },
   { id: 'volunteer', name: '봉사', isActive: false },
+  { id: 'exhibition', name: '전시', isActive: false },
+  { id: 'exercise', name: '운동', isActive: false },
 ];
 
 /* -----------------------------
-   3. Missions Dummy Data
+   3) ML 미션 23개 → 엔티티 전체 필드 포함
 ----------------------------- */
-const missions: Mission[] = [
-  {
-    id: 'mission-1',
-    title: '해운대 맛집 투어',
-    imageUrl: 'https://example.com/mission1.jpg',
-    location: '부산 해운대구',
-    locationDetail: '해운대 해수욕장 인근',
-    distance: randomDistance(),
-    coinReward: 100,
-    category: 'food',
-    endDate: '2025.12.31',
-    insight: '요즘 뜨는 해운대 맛집을 둘러보세요.',
-    verificationMethods: ['사진 인증', '방문 스탬프'],
-    coordinates: { lat: 35.1587, lng: 129.1604 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-2',
-    title: '광안리 카페 라운지',
-    imageUrl: 'https://example.com/mission2.jpg',
-    location: '부산 수영구',
-    locationDetail: '광안리 해변 카페 거리',
-    distance: randomDistance(),
-    coinReward: 80,
-    category: 'cafe',
-    endDate: '2025.12.31',
-    insight: '카페에서 여유를 즐겨보세요.',
-    verificationMethods: ['음료 사진 인증'],
-    coordinates: { lat: 35.1532, lng: 129.1187 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-3',
-    title: '감천문화마을 투어',
-    imageUrl: 'https://example.com/mission3.jpg',
-    location: '부산 사하구',
-    locationDetail: '감천문화마을',
-    distance: randomDistance(),
-    coinReward: 120,
-    category: 'tour',
-    endDate: '2025.12.31',
-    insight: '감천문화마을을 산책하며 사진을 찍어보세요.',
-    verificationMethods: ['포토존 인증샷'],
-    coordinates: { lat: 35.0971, lng: 129.0104 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-4',
-    title: '부산 불꽃축제 관람',
-    imageUrl: 'https://example.com/mission4.jpg',
-    location: '부산 수영구',
-    locationDetail: '광안리 해변 일대',
-    distance: randomDistance(),
-    coinReward: 150,
-    category: 'festival',
-    endDate: '2025.11.15',
-    insight: '불꽃축제를 즐기고 인증하세요.',
-    verificationMethods: ['불꽃 사진 인증'],
-    coordinates: { lat: 35.1538, lng: 129.1187 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-5',
-    title: '북카페 스터디',
-    imageUrl: 'https://example.com/mission5.jpg',
-    location: '부산 남구',
-    locationDetail: '경성대 부경대역 인근 북카페',
-    distance: randomDistance(),
-    coinReward: 70,
-    category: 'study',
-    endDate: '2025.10.01',
-    insight: '책을 읽고 느낀 점을 공유하세요.',
-    verificationMethods: ['독서 인증샷'],
-    coordinates: { lat: 35.1365, lng: 129.1004 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-6',
-    title: '황령산 러닝',
-    imageUrl: 'https://example.com/mission6.jpg',
-    location: '부산 연제구',
-    locationDetail: '황령산 둘레길',
-    distance: randomDistance(),
-    coinReward: 130,
-    category: 'exercise',
-    endDate: '2025.09.30',
-    insight: '산책 겸 러닝으로 건강 챙기기.',
-    verificationMethods: ['런닝 앱 기록 인증'],
-    coordinates: { lat: 35.1456, lng: 129.0764 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-7',
-    title: '시립미술관 전시 관람',
-    imageUrl: 'https://example.com/mission7.jpg',
-    location: '부산 해운대구',
-    locationDetail: '부산시립미술관',
-    distance: randomDistance(),
-    coinReward: 90,
-    category: 'exhibition',
-    endDate: '2025.08.31',
-    insight: '전시를 감상하고 후기 남기기.',
-    verificationMethods: ['입장권 인증'],
-    coordinates: { lat: 35.1691, lng: 129.1366 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-8',
-    title: '롯데 자이언츠 직관',
-    imageUrl: 'https://example.com/mission8.jpg',
-    location: '부산 동래구',
-    locationDetail: '사직야구장',
-    distance: randomDistance(),
-    coinReward: 200,
-    category: 'sports',
-    endDate: '2025.07.31',
-    insight: '야구 직관 후 응원 인증샷.',
-    verificationMethods: ['응원 도구 인증샷'],
-    coordinates: { lat: 35.1940, lng: 129.0617 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-9',
-    title: '광안리 해변 쓰레기 줍기',
-    imageUrl: 'https://example.com/mission9.jpg',
-    location: '부산 수영구',
-    locationDetail: '광안리 해변',
-    distance: randomDistance(),
-    coinReward: 110,
-    category: 'volunteer',
-    endDate: '2025.06.30',
-    insight: '해변을 깨끗하게 만들어요.',
-    verificationMethods: ['전/후 사진 인증'],
-    coordinates: { lat: 35.1532, lng: 129.1187 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-10',
-    title: '부산타워 전망대 방문',
-    imageUrl: 'https://example.com/mission10.jpg',
-    location: '부산 중구',
-    locationDetail: '용두산공원 부산타워',
-    distance: randomDistance(),
-    coinReward: 95,
-    category: 'tour',
-    endDate: '2025.12.31',
-    insight: '부산 전경을 감상하고 인증샷 남기기.',
-    verificationMethods: ['전망대 인증샷'],
-    coordinates: { lat: 35.0994, lng: 129.0328 },
-    isLiked: false,
-  },
-  {
-    id: 'mission-11',
-    title: '남포동 길거리 음식 탐방',
-    imageUrl: 'https://example.com/mission11.jpg',
-    location: '부산 중구',
-    locationDetail: '남포동 BIFF 광장 일대',
-    distance: randomDistance(),
-    coinReward: 85,
-    category: 'food',
-    endDate: '2025.11.30',
-    insight: '길거리 음식을 맛보고 기록하세요.',
-    verificationMethods: ['음식 사진 인증'],
-    coordinates: { lat: 35.0997, lng: 129.0260 },
-    isLiked: false,
-  },
+
+const MISSIONS_CSV: [
+  string,       // id
+  string,       // category
+  string,       // title
+  number,       // lat
+  number,       // lng
+  number,       // reqTimeMin
+  number,       // coinReward
+  number,       // priorityWeight
+  number        // finalWeight
+][] = [
+  ["M001","Food","자갈치시장 꼼장어 골목 방문",35.0968,129.0306,40,50,1,1.1],
+  ["M002","Food","부산대 앞 토스트 골목 간식타임",35.2327,129.0823,40,50,0,1.0],
+  ["M003","Cafe","전포 카페거리 힙한 카페 찾기",35.1557,129.0629,30,50,0,1.0],
+  ["M004","Cafe","영도 흰여울문화마을 오션뷰 카페",35.0768,129.0419,30,50,1,1.1],
+  ["M005","Tourist","해운대 블루라인파크 해변열차 구경",35.1876,129.2068,10,100,2,1.2],
+  ["M006","Tourist","감천문화마을 어린왕자와 사진찍기",35.0976,129.0104,10,100,2,1.2],
+  ["M007","Culture","영화의전당 시네마테크 관람",35.1716,129.1307,60,250,1,1.1],
+  ["M008","Culture","부산시립미술관 전시회 관람",35.1729,129.1296,60,250,1,1.1],
+  ["M009","Culture","F1963 복합문화공간 방문",35.1506,129.0629,60,250,1,1.1],
+  ["M010","Festival","광안리 해수욕장 불꽃축제 명당 찾기",35.1532,129.1189,10,100,3,1.3],
+  ["M011","Festival","BIFF 광장 먹자골목 투어",35.0989,129.0305,10,100,2,1.2],
+  ["M012","Walk","부산시민공원 20분 걷기 챌린지",35.1687,129.0571,20,200,1,1.1],
+  ["M013","Walk","동백섬 산책로 한 바퀴 돌기",35.1588,129.1345,20,200,1,1.1],
+  ["M014","Walk","온천천 벚꽃길 산책 코스 완주",35.1971,129.0857,20,200,1,1.1],
+  ["M015","Shopping","부전시장 장보기 챌린지",35.1639,129.0604,30,150,1,1.1],
+  ["M016","Shopping","신세계 센텀시티 아이쇼핑",35.1688,129.1306,30,150,2,1.2],
+  ["M017","Shopping","국제시장 구제골목 탐방",35.0998,129.0304,30,150,1,1.1],
+  ["M018","Self-Dev","부산은행 본점(BIFC) 금융센터 방문",35.1143,129.0476,60,300,3,1.3],
+  ["M019","Self-Dev","부산광역시립도서관 열람실 이용",35.2052,129.0863,60,300,0,1.0],
+  ["M020","Self-Dev","영풍문고 광복점 베스트셀러 구경",35.0989,129.0311,60,300,0,1.0],
+  ["M021","Sports","사직야구장 롯데 자이언츠 직관",35.194,129.0615,40,200,2,1.2],
+  ["M022","Sports","BNK 썸 농구단 홈경기 응원",35.1937,129.0608,40,200,3,1.3],
+  ["M023","Sports","삼락생태공원 자전거 라이딩",35.1808,128.9856,40,200,1,1.1],
 ];
 
+const missions: Mission[] = MISSIONS_CSV.map((m) => {
+  const [id, categoryMl, title, lat, lng, reqTimeMin, coinReward, priorityWeight, finalWeight] = m;
+  const categoryApi = toApiCategory(categoryMl);
+
+  if (!categoryApi) {
+    throw new Error(`FATAL: Could not map ML category "${categoryMl}" to an API category for mission ${id}.`);
+  }
+
+  return {
+    id,
+    title,
+    category: categoryApi,
+    coordinates: { lat, lng },
+    coinReward,
+    priorityWeight,
+    finalWeight,
+    reqTimeMin,
+
+    // PLACEHOLDERS required by Mission entity:
+    distance: 0,
+    imageUrl: `https://example.com/mission-${id}.jpg`,
+    location: '부산 전역',
+    locationDetail: '상세 위치는 지도 참고',
+    endDate: '2025-12-31',
+    insight: '미션을 수행해보세요.',
+    verificationMethods: ['사진 인증'],
+    isLiked: false,
+  };
+});
+
+/* -----------------------------
+   Seed Run
+----------------------------- */
 async function seed() {
   await dataSource.initialize();
 
@@ -266,10 +169,6 @@ async function seed() {
   await missionRepo.upsert(missions, ['id']);
 
   console.log('Seed completed.');
-}
-
-function randomDistance(): number {
-  return Math.floor(Math.random() * (5000 - 100 + 1)) + 100;
 }
 
 seed()

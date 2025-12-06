@@ -1,5 +1,6 @@
 export class AiRecommendQueryDto {
-  userId?: string;
+  lat!: number;
+  lon!: number;
   limit?: number;
 }
 
@@ -17,20 +18,23 @@ export class MissionIdParamDto {
 export interface MissionResponseDto {
   id: string;
   title: string;
-  imageUrl: string;
-  location: string;
-  locationDetail: string;
+  imageUrl: string | null | undefined;
+  location: string | null | undefined;
+  locationDetail: string | null | undefined;
   distance: string;
   coinReward: number;
   category: string;
-  endDate: string;
-  insight: string;
+  endDate: string | null;
+  insight: string | null;
   verificationMethods: string[];
   coordinates?: {
     lat: number;
     lng: number;
   };
   isLiked: boolean;
-  participationStatus?: 'in_progress' | 'completed' | 'failed' | null;
+  participationStatus?: string | null;
   completedAt?: string | null;
+  modelProba?: number;
+  finalScore?: number;
+  distanceMeters?: number;
 }

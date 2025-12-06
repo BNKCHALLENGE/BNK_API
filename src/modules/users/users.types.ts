@@ -4,6 +4,8 @@ export interface UserResponseDto {
   profileImageUrl: string;
   gender?: string;
   age?: number;
+  acceptanceRate: number;
+  activeTimeSlot: string;
   coinBalance: number;
   preferences: {
     categories: string[];

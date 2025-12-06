@@ -18,20 +18,29 @@ export class Mission {
   @Column({ type: 'varchar' })
   title!: string;
 
-  @Column({ type: 'varchar', name: 'image_url' })
-  imageUrl!: string;
+  @Column({ type: 'varchar', name: 'image_url', nullable: true })
+  imageUrl?: string | null;
 
-  @Column({ type: 'varchar' })
-  location!: string;
+  @Column({ type: 'varchar', nullable: true })
+  location?: string | null;
 
-  @Column({ type: 'varchar', name: 'location_detail' })
-  locationDetail!: string;
+  @Column({ type: 'varchar', name: 'location_detail', nullable: true })
+  locationDetail?: string | null;
 
   @Column({ type: 'float' })
   distance!: number;
 
   @Column({ type: 'int', name: 'coin_reward' })
   coinReward!: number;
+
+  @Column({ type: 'float', name: 'priority_weight', default: 0 })
+  priorityWeight!: number;
+
+  @Column({ type: 'float', name: 'final_weight', default: 0 })
+  finalWeight!: number;
+
+  @Column({ type: 'int', name: 'req_time_min', default: 0 })
+  reqTimeMin!: number;
 
   @Column({ type: 'varchar' })
   category!: string;

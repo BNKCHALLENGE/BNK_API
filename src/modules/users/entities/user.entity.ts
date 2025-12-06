@@ -19,6 +19,12 @@ export class User {
   @Column({ type: 'int', nullable: true })
   age?: number;
 
+  @Column({ type: 'float', name: 'acceptance_rate', default: 0 })
+  acceptanceRate!: number;
+
+  @Column({ type: 'varchar', name: 'active_time_slot', default: 'Day' })
+  activeTimeSlot!: string;
+
   @Column({ type: 'int', name: 'coin_balance', default: 0 })
   coinBalance!: number;
 

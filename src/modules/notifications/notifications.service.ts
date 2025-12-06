@@ -1,8 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 
-const firebaseKey = JSON.parse(process.env.FIREBASE_KEY ?? '{}');
-
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
@@ -25,23 +23,27 @@ export class NotificationService {
     const validTokens = tokens.filter((token) => !!token);
     const tasks = validTokens.map((token) =>
       this.sendPushNotification(token, title, body).catch((error) => {
-        this.logger.error(`Failed to send notification to token ${token}`, error as any);
+        this.logger.error(`Failed to send notification to token ${token}`, error);
       }),
     );
     await Promise.all(tasks);
   }
 
   private ensureInitialized() {
-    if (admin.apps.length) {
-      return;
-    }
+    if (admin.apps.length > 0) return;
+
     try {
       admin.initializeApp({
-        credential: admin.credential.cert(firebaseKey),
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        }),
       });
+
       this.logger.log('Firebase Admin initialized for notifications');
     } catch (error) {
-      this.logger.error('Failed to initialize Firebase Admin', error as any);
+      this.logger.error('Failed to initialize Firebase Admin', error);
       throw error;
     }
   }
