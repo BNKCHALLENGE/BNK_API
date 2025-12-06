@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Headers, Post, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { UsersService } from './users.service';
 
 interface UpdatePreferencesDto {
@@ -10,30 +11,21 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  async getMe(@Headers('authorization') authorization?: string) {
-    this.ensureAuthorized(authorization);
-    return this.usersService.getCurrentUser();
+  async getMe(@Req() req: Request) {
+    const userId = (req as any).user?.id;
+    return this.usersService.getCurrentUser(userId);
   }
 
   @Post('me/preferences')
-  async updatePreferences(
-    @Headers('authorization') authorization: string | undefined,
-    @Body() body: UpdatePreferencesDto,
-  ) {
-    this.ensureAuthorized(authorization);
+  async updatePreferences(@Req() req: Request, @Body() body: UpdatePreferencesDto) {
+    const userId = (req as any).user?.id;
     const categories = Array.isArray(body?.categories) ? body.categories : [];
-    return this.usersService.setPreferences(categories);
+    return this.usersService.setPreferences(userId, categories);
   }
 
   @Get('me/preferences')
-  async getPreferences(@Headers('authorization') authorization?: string) {
-    this.ensureAuthorized(authorization);
-    return this.usersService.getPreferences();
-  }
-
-  private ensureAuthorized(authorization?: string) {
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      throw new UnauthorizedException('Authorization header is required');
-    }
+  async getPreferences(@Req() req: Request) {
+    const userId = (req as any).user?.id;
+    return this.usersService.getPreferences(userId);
   }
 }

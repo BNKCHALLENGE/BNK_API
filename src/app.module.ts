@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -25,7 +24,6 @@ import { AuthGuard } from './common/guards/auth.guard';
       entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
       synchronize: true,
     }),
-    ScheduleModule.forRoot(),
     NotificationModule,
     UsersModule,
     CategoriesModule,

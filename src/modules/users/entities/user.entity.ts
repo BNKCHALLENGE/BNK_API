@@ -13,8 +13,17 @@ export class User {
   @Column({ type: 'varchar', name: 'profile_image_url' })
   profileImageUrl!: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  gender?: string;
+
+  @Column({ type: 'int', nullable: true })
+  age?: number;
+
   @Column({ type: 'jsonb', nullable: true })
   preferences?: Record<string, any>;
+
+  @Column({ type: 'varchar', name: 'fcm_token', nullable: true })
+  fcmToken?: string | null;
 
   @OneToMany(() => MissionParticipation, (participation) => participation.user)
   participations?: MissionParticipation[];

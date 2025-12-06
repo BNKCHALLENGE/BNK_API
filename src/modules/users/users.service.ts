@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -10,19 +10,17 @@ export interface UserPreferences {
 
 @Injectable()
 export class UsersService {
-  private readonly userId = 'user-1';
-
   constructor(
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
   ) {}
 
-  async getCurrentUser(): Promise<User> {
-    return this.getUserOrThrow();
+  async getCurrentUser(userId: string): Promise<User> {
+    return this.getUserOrThrow(userId);
   }
 
-  async setPreferences(categories: string[]): Promise<UserPreferences> {
-    const user = await this.getUserOrThrow();
+  async setPreferences(userId: string, categories: string[]): Promise<UserPreferences> {
+    const user = await this.getUserOrThrow(userId);
     const preferences: UserPreferences = {
       categories,
       isOnboardingComplete: categories.length > 0,
@@ -31,8 +29,8 @@ export class UsersService {
     return preferences;
   }
 
-  async getPreferences(): Promise<UserPreferences> {
-    const user = await this.getUserOrThrow();
+  async getPreferences(userId: string): Promise<UserPreferences> {
+    const user = await this.getUserOrThrow(userId);
     const preferences = user.preferences as UserPreferences | undefined;
     return (
       preferences ?? {
@@ -42,13 +40,30 @@ export class UsersService {
     );
   }
 
-  private async getUserOrThrow(): Promise<User> {
-    const user = await this.usersRepository.findOne({
-      where: { id: this.userId },
-    });
+  async saveFcmToken(userId: string, token: string): Promise<void> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (!token) {
+      throw new BadRequestException('FCM token is required');
+    }
+    await this.usersRepository.update(userId, { fcmToken: token });
+  }
+
+  private async getUserOrThrow(userId: string): Promise<User> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  async getAllWithFcmToken(): Promise<User[]> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.fcmToken IS NOT NULL')
+      .andWhere("user.fcmToken <> ''")
+      .getMany();
   }
 }

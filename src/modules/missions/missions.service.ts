@@ -24,7 +24,6 @@ export interface MissionsListResponse {
 
 @Injectable()
 export class MissionsService {
-  private readonly userId = 'user-1';
 
   constructor(
     @InjectRepository(Mission)
@@ -36,13 +35,13 @@ export class MissionsService {
     private readonly aiRecommendationService: AiRecommendationService,
   ) {}
 
-  async getAiRecommendations(query: AiRecommendQueryDto): Promise<MissionResponseDto[]> {
-    const userId = query.userId || this.userId;
+  async getAiRecommendations(userId: string, query: AiRecommendQueryDto): Promise<MissionResponseDto[]> {
+    const resolvedUserId = query.userId || userId;
     const limit = query.limit && query.limit > 0 ? query.limit : 5;
 
     let recommendedIds: string[] = [];
     try {
-      recommendedIds = await this.aiRecommendationService.getRecommendedMissionIds(userId, limit);
+      recommendedIds = await this.aiRecommendationService.getRecommendedMissionIds(resolvedUserId, limit);
     } catch {
       recommendedIds = [];
     }
@@ -117,7 +116,7 @@ export class MissionsService {
     return this.toMissionResponseDto(mission);
   }
 
-  async likeMission(params: MissionIdParamDto) {
+  async likeMission(userId: string, params: MissionIdParamDto) {
     const mission = await this.missionsRepository.findOne({
       where: { id: params.missionId },
     });
@@ -126,13 +125,13 @@ export class MissionsService {
     }
 
     let like = await this.missionLikesRepository.findOne({
-      where: { missionId: mission.id, userId: this.userId },
+      where: { missionId: mission.id, userId },
     });
 
     if (!like) {
       like = this.missionLikesRepository.create({
         missionId: mission.id,
-        userId: this.userId,
+        userId,
         isLiked: true,
       });
     } else {
@@ -148,7 +147,7 @@ export class MissionsService {
     return { isLiked: like.isLiked, likeCount };
   }
 
-  async participateInMission(params: MissionIdParamDto) {
+  async participateInMission(userId: string, params: MissionIdParamDto) {
     const mission = await this.missionsRepository.findOne({
       where: { id: params.missionId },
     });
@@ -157,7 +156,7 @@ export class MissionsService {
     }
 
     const existing = await this.missionParticipationsRepository.findOne({
-      where: { missionId: mission.id, userId: this.userId },
+      where: { missionId: mission.id, userId },
     });
     if (existing) {
       throw new BadRequestException('Already participating in this mission');
@@ -165,7 +164,7 @@ export class MissionsService {
 
     const participation = this.missionParticipationsRepository.create({
       missionId: mission.id,
-      userId: this.userId,
+      userId,
       status: 'in_progress',
       participatedAt: new Date(),
     });

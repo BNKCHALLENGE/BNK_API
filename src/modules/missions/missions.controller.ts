@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { MissionsService } from './missions.service';
 import {
   AiRecommendQueryDto,
@@ -11,8 +12,9 @@ export class MissionsController {
   constructor(private readonly missionsService: MissionsService) {}
 
   @Get('ai-recommend')
-  getAiRecommend(@Query() query: AiRecommendQueryDto) {
-    return this.missionsService.getAiRecommendations(query);
+  getAiRecommend(@Req() req: Request, @Query() query: AiRecommendQueryDto) {
+    const userId = (req as any).user?.id;
+    return this.missionsService.getAiRecommendations(userId, query);
   }
 
   @Get()
@@ -26,12 +28,14 @@ export class MissionsController {
   }
 
   @Post(':missionId/like')
-  likeMission(@Param() params: MissionIdParamDto) {
-    return this.missionsService.likeMission(params);
+  likeMission(@Req() req: Request, @Param() params: MissionIdParamDto) {
+    const userId = (req as any).user?.id;
+    return this.missionsService.likeMission(userId, params);
   }
 
   @Post(':missionId/participate')
-  participateMission(@Param() params: MissionIdParamDto) {
-    return this.missionsService.participateInMission(params);
+  participateMission(@Req() req: Request, @Param() params: MissionIdParamDto) {
+    const userId = (req as any).user?.id;
+    return this.missionsService.participateInMission(userId, params);
   }
 }

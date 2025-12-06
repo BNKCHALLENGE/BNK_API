@@ -18,6 +18,51 @@ const dataSource = new DataSource({
   logging: false,
 });
 
+/* -----------------------------
+   1. User Dummy Data
+----------------------------- */
+const users: User[] = [
+  {
+    id: 'user-1',
+    name: '채수원',
+    gender: 'male',
+    age: 25,
+    profileImageUrl: 'https://example.com/profile-chaesuwon.jpg',
+    preferences: {
+      categories: [],
+      isOnboardingComplete: false,
+    },
+    fcmToken: null,
+  },
+  {
+    id: 'user-2',
+    name: '박보은',
+    gender: 'female',
+    age: 22,
+    profileImageUrl: 'https://example.com/profile-boeun.jpg',
+    preferences: {
+      categories: [],
+      isOnboardingComplete: false,
+    },
+    fcmToken: null,
+  },
+  {
+    id: 'user-3',
+    name: '윤민석',
+    gender: 'male',
+    age: 60,
+    profileImageUrl: 'https://example.com/profile-minseok.jpg',
+    preferences: {
+      categories: [],
+      isOnboardingComplete: false,
+    },
+    fcmToken: null,
+  },
+];
+
+/* -----------------------------
+   2. Category Dummy Data
+----------------------------- */
 const categories: Category[] = [
   { id: 'food', name: '맛집', isActive: true },
   { id: 'cafe', name: '카페', isActive: false },
@@ -30,6 +75,9 @@ const categories: Category[] = [
   { id: 'volunteer', name: '봉사', isActive: false },
 ];
 
+/* -----------------------------
+   3. Missions Dummy Data
+----------------------------- */
 const missions: Mission[] = [
   {
     id: 'mission-1',
@@ -200,8 +248,13 @@ const missions: Mission[] = [
 
 async function seed() {
   await dataSource.initialize();
+
+  const userRepo = dataSource.getRepository(User);
   const categoryRepo = dataSource.getRepository(Category);
   const missionRepo = dataSource.getRepository(Mission);
+
+  console.log('Seeding users...');
+  await userRepo.upsert(users, ['id']);
 
   console.log('Seeding categories...');
   await categoryRepo.upsert(categories, ['id']);
