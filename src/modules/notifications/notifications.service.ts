@@ -6,7 +6,7 @@ export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
   constructor() {
-    // this.ensureInitialized();
+    this.ensureInitialized();
   }
 
   async sendPushNotification(token: string, title: string, body: string) {
