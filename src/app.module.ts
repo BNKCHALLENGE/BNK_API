@@ -14,16 +14,16 @@ import { AuthGuard } from './common/guards/auth.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // Railway Postgres 연결 설정 (정답)
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST,
-      port: parseInt(process.env.DB_PORT ?? '5432', 10),
-      username: process.env.DB_USERNAME,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_DATABASE,
-      entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
-      synchronize: true,
+      url: process.env.DATABASE_URL,  // DB_HOST/PORT 안 씀
+      ssl: { rejectUnauthorized: false }, // Railway requires this
+      autoLoadEntities: true,
+      synchronize: true, // 운영은 절대 true 금지
     }),
+
     NotificationModule,
     UsersModule,
     CategoriesModule,
