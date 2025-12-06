@@ -21,7 +21,7 @@ import { AuthGuard } from './common/guards/auth.guard';
       url: process.env.DATABASE_URL,  // DB_HOST/PORT 안 씀
       ssl: { rejectUnauthorized: false }, // Railway requires this
       autoLoadEntities: true,
-      synchronize: true, // 운영은 절대 true 금지
+      synchronize: false, // 운영은 절대 true 금지
     }),
 
     NotificationModule,

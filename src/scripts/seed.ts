@@ -9,11 +9,10 @@ import { toApiCategory } from '../modules/missions/category-transform.util';
 
 const dataSource = new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT ?? '5432', 10),
-  username: process.env.DB_USERNAME,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_DATABASE,
+  url: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
   entities: [User, Category, Mission, MissionLike, MissionParticipation],
   synchronize: false,
   logging: false,
