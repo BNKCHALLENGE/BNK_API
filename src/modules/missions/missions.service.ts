@@ -125,7 +125,7 @@ export class MissionsService {
   }
 
   async getMissionById(userId: string | undefined, params: MissionIdParamDto): Promise<MissionResponseDto> {
-    const mlMissionId = apiIdToMlId(params.missionId) ?? params.missionId;
+    const mlMissionId = this.resolveMlMissionIdOrThrow(params.missionId);
     const mission = await this.missionsRepository.findOne({
       where: { id: mlMissionId },
     });
@@ -137,7 +137,7 @@ export class MissionsService {
   }
 
   async likeMission(userId: string, params: MissionIdParamDto) {
-    const mlMissionId = apiIdToMlId(params.missionId) ?? params.missionId;
+    const mlMissionId = this.resolveMlMissionIdOrThrow(params.missionId);
     const mission = await this.missionsRepository.findOne({
       where: { id: mlMissionId },
     });
@@ -169,7 +169,7 @@ export class MissionsService {
   }
 
   async participateInMission(userId: string, params: MissionIdParamDto) {
-    const mlMissionId = apiIdToMlId(params.missionId) ?? params.missionId;
+    const mlMissionId = this.resolveMlMissionIdOrThrow(params.missionId);
     const mission = await this.missionsRepository.findOne({
       where: { id: mlMissionId },
     });
@@ -200,7 +200,7 @@ export class MissionsService {
   }
 
   async completeMission(userId: string, missionId: string, success: boolean) {
-    const mlMissionId = apiIdToMlId(missionId) ?? missionId;
+    const mlMissionId = this.resolveMlMissionIdOrThrow(missionId);
     return this.missionsRepository.manager.transaction(async (manager) => {
       const mission = await manager.findOne(Mission, { where: { id: mlMissionId } });
       if (!mission) {
@@ -308,6 +308,14 @@ export class MissionsService {
       where: { userId, missionId },
     });
     return participation ?? null;
+  }
+
+  private resolveMlMissionIdOrThrow(apiMissionId: string): string {
+    const mlId = apiIdToMlId(apiMissionId);
+    if (!mlId) {
+      throw new BadRequestException(`Invalid missionId format: ${apiMissionId}`);
+    }
+    return mlId;
   }
 
   private async buildUserContext(
