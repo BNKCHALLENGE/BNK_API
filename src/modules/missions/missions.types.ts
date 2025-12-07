@@ -9,6 +9,8 @@ export class MissionsQueryDto {
   sort?: 'distance' | 'popular' | 'recent';
   page?: number;
   limit?: number;
+  lat?: number;
+  lon?: number;
 }
 
 export class MissionIdParamDto {

@@ -78,6 +78,8 @@ export class MissionsService {
   async getMissions(userId: string | undefined, query: MissionsQueryDto): Promise<MissionsListResponse> {
     const page = query.page && query.page > 0 ? query.page : 1;
     const limit = query.limit && query.limit > 0 ? query.limit : 10;
+    const userLat = isFinite(Number(query.lat)) ? Number(query.lat) : undefined;
+    const userLon = isFinite(Number(query.lon)) ? Number(query.lon) : undefined;
 
     const qb = this.missionsRepository.createQueryBuilder('mission');
 
@@ -111,9 +113,25 @@ export class MissionsService {
 
     const participationMap = await this.getParticipationMap(userId, missions.map((m) => m.id));
 
+    const missionsWithDistance = missions.map((mission) => {
+      const distanceMeters =
+        userLat !== undefined &&
+        userLon !== undefined &&
+        mission.coordinates &&
+        isFinite(mission.coordinates.lat) &&
+        isFinite(mission.coordinates.lng)
+          ? haversineDistanceMeters(userLat, userLon, mission.coordinates.lat, mission.coordinates.lng)
+          : mission.distance ?? 0;
+      return { mission, distanceMeters };
+    });
+
+    if (query.sort === 'distance' && userLat !== undefined && userLon !== undefined) {
+      missionsWithDistance.sort((a, b) => a.distanceMeters - b.distanceMeters);
+    }
+
     return {
-      missions: missions.map((mission) =>
-        this.toMissionResponseDto(mission, participationMap.get(mission.id)),
+      missions: missionsWithDistance.map(({ mission, distanceMeters }) =>
+        this.toMissionResponseDto(mission, participationMap.get(mission.id), undefined, distanceMeters),
       ),
       pagination: {
         currentPage: page,
@@ -248,8 +266,9 @@ export class MissionsService {
     mission: Mission,
     participation?: MissionParticipation | null,
     recommendation?: RecommendationResult,
+    distanceMetersOverride?: number,
   ): MissionResponseDto {
-    const distanceMeters = recommendation?.distance_m ?? mission.distance ?? 0;
+    const distanceMeters = distanceMetersOverride ?? recommendation?.distance_m ?? mission.distance ?? 0;
     const distance = `${(distanceMeters / 1000).toFixed(1)}km`;
     return {
       id: mlIdToApiId(mission.id) ?? mission.id,
@@ -350,4 +369,18 @@ export class MissionsService {
 function getRandomWeather(): string {
   const weathers = ['Sunny', 'Cloudy', 'Rainy', 'Snowy'];
   return weathers[Math.floor(Math.random() * weathers.length)];
+}
+
+function haversineDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const toRad = (v: number) => (v * Math.PI) / 180;
+  const R = 6371e3; // meters
+  const φ1 = toRad(lat1);
+  const φ2 = toRad(lat2);
+  const Δφ = toRad(lat2 - lat1);
+  const Δλ = toRad(lon2 - lon1);
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 }
