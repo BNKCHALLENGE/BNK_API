@@ -91,9 +91,9 @@ export class MissionsService {
     switch (query.sort) {
       case 'popular':
         qb.leftJoin('mission.likes', 'like', 'like.isLiked = true')
-          .addSelect('COUNT(like.id)', 'likeCount')
+          .addSelect('COUNT(like.id)', 'likecount')
           .groupBy('mission.id')
-          .orderBy('likeCount', 'DESC');
+          .orderBy('likecount', 'DESC');
         break;
       case 'recent':
         qb.orderBy('mission.endDate', 'DESC');
@@ -277,9 +277,9 @@ export class MissionsService {
     const qb = this.missionsRepository
       .createQueryBuilder('mission')
       .leftJoin('mission.likes', 'like', 'like.isLiked = true')
-      .addSelect('COUNT(like.id)', 'likeCount')
+      .addSelect('COUNT(like.id)', 'likecount')
       .groupBy('mission.id')
-      .orderBy('likeCount', 'DESC')
+      .orderBy('likecount', 'DESC')
       .addOrderBy('mission.distance', 'ASC')
       .take(limit);
 
