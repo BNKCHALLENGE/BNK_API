@@ -328,17 +328,19 @@ export class MissionsService {
     const prefs = (user.preferences as any) ?? {};
     const jsDay = new Date().getDay(); // 0=Sun .. 6=Sat
     const mlDay = (jsDay + 6) % 7; // 0=Mon .. 6=Sun
+    const currentHour = new Date().getHours(); // 0-23
     return {
       user_id: userIdToMlId(user.id) ?? user.id,
       age: user.age ?? undefined,
       gender: user.gender ?? undefined,
-      user_lat: userLat,
-      user_lon: userLon,
+      last_lat: userLat,
+      last_lon: userLon,
       pref_tags: Array.isArray(prefs.categories)
         ? prefs.categories.map(toMlCategory).filter((c): c is string => !!c)
         : [],
       acceptance_rate: user.acceptanceRate ?? 0,
       active_time_slot: user.activeTimeSlot ?? 'Day',
+      current_hour: currentHour,
       current_day_of_week: mlDay,
       current_weather: getRandomWeather(),
     };
@@ -349,4 +351,3 @@ function getRandomWeather(): string {
   const weathers = ['Sunny', 'Cloudy', 'Rainy', 'Snowy'];
   return weathers[Math.floor(Math.random() * weathers.length)];
 }
-

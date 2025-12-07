@@ -5,11 +5,12 @@ export interface UserContext {
   user_id: string;
   age?: number;
   gender?: string;
-  user_lat?: number;
-  user_lon?: number;
+  last_lat?: number;
+  last_lon?: number;
   pref_tags?: string[];
   acceptance_rate?: number;
   active_time_slot?: string;
+  current_hour?: number;
   current_day_of_week?: number;
   current_weather?: string;
 }
