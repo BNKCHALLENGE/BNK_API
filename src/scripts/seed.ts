@@ -118,6 +118,8 @@ const MISSIONS_CSV: [
   ["M023","Sports","삼락생태공원 자전거 라이딩",35.1808,128.9856,40,200,1,1.1],
 ];
 
+const S3_BASE = 'https://amzn-s3-mseoky-bucket.s3.ap-northeast-2.amazonaws.com/bnk-challenge-images';
+
 const missions: Mission[] = MISSIONS_CSV.map((m) => {
   const [id, categoryMl, title, lat, lng, reqTimeMin, coinReward, priorityWeight, finalWeight] = m;
   const categoryApi = toApiCategory(categoryMl);
@@ -138,7 +140,7 @@ const missions: Mission[] = MISSIONS_CSV.map((m) => {
 
     // PLACEHOLDERS required by Mission entity:
     distance: 0,
-    imageUrl: `https://example.com/mission-${id}.jpg`,
+    imageUrl: `${S3_BASE}/${id}.jpg`,   // 자동 생성
     location: '부산 전역',
     locationDetail: '상세 위치는 지도 참고',
     endDate: '2025-12-31',

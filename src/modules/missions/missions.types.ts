@@ -27,10 +27,10 @@ export interface MissionResponseDto {
   endDate: string | null;
   insight: string | null;
   verificationMethods: string[];
-  coordinates?: {
+  coordinates: {
     lat: number;
     lng: number;
-  };
+  } | null;
   isLiked: boolean;
   participationStatus?: string | null;
   completedAt?: string | null;

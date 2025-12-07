@@ -180,7 +180,7 @@ export class MissionsService {
     const existing = await this.missionParticipationsRepository.findOne({
       where: { missionId: mission.id, userId },
     });
-    if (existing) {
+    if (existing && existing.status === 'in_progress') {
       throw new BadRequestException('Already participating in this mission');
     }
 
@@ -263,7 +263,7 @@ export class MissionsService {
       endDate: mission.endDate,
       insight: mission.insight,
       verificationMethods: mission.verificationMethods ?? [],
-      coordinates: mission.coordinates,
+      coordinates: mission.coordinates ?? null,
       isLiked: mission.isLiked,
       participationStatus: participation ? participation.status : null,
       completedAt: participation?.completedAt ? participation.completedAt.toISOString() : null,
