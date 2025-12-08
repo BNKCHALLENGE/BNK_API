@@ -448,7 +448,7 @@ const MISSIONS: MissionSeed[] = [
     finalWeight: 1.3,
     location: '사직 실내체육관',
     locationDetail: '농구장 관람석',
-    endDate: '2025-12-30',
+    endDate: '2025-12-10',
     insight: 'vs KB스타즈 리그 2등과 3등의 접전!',
     verificationMethods: ['사직 실내체육관 관람석에서 5초 이상 머문 GPS 기록 제출 (GPS 인증)'],
   },
