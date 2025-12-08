@@ -12,7 +12,7 @@ import { MissionLike } from './entities/mission-like.entity';
 import { MissionParticipation } from './entities/mission-participation.entity';
 import { AiRecommendationService, RecommendationResult, UserContext } from './ai-recommendation.service';
 import { User } from '../users/entities/user.entity';
-import { toApiCategory, toMlCategory } from './category-transform.util';
+import { normalizeApiCategory, toApiCategory, toMlCategory } from './category-transform.util';
 import { apiIdToMlId, mlIdToApiId } from './mission-id.transform';
 import { userIdToMlId } from './user-id.transform';
 
@@ -84,9 +84,9 @@ export class MissionsService {
     const qb = this.missionsRepository.createQueryBuilder('mission');
 
     if (query.category) {
-      const mlCategory = toMlCategory(query.category);
-      if (mlCategory) {
-        qb.andWhere('mission.category = :category', { category: mlCategory });
+      const apiCategory = normalizeApiCategory(query.category);
+      if (apiCategory) {
+        qb.andWhere('mission.category = :category', { category: apiCategory });
       }
     }
 
