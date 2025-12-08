@@ -43,7 +43,7 @@ export class MissionsService {
 
   async getAiRecommendations(userId: string, query: AiRecommendQueryDto): Promise<MissionResponseDto[]> {
     const resolvedUserId = userId;
-    const limit = query.limit && query.limit > 0 ? query.limit : 5;
+    const limit = query.limit && query.limit > 0 ? query.limit : 4;
 
     const userContext = resolvedUserId
       ? await this.buildUserContext(resolvedUserId, Number(query.lat), Number(query.lon))
