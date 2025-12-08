@@ -113,7 +113,7 @@ export class MissionsService {
 
     const participationMap = await this.getParticipationMap(userId, missions.map((m) => m.id));
 
-    const missionsWithDistance = missions.map((mission) => {
+    let missionsWithDistance = missions.map((mission) => {
       const distanceMeters =
         userLat !== undefined &&
         userLon !== undefined &&
@@ -124,6 +124,13 @@ export class MissionsService {
           : mission.distance ?? 0;
       return { mission, distanceMeters };
     });
+
+    if (query.participationStatus) {
+      missionsWithDistance = missionsWithDistance.filter(({ mission }) => {
+        const participation = participationMap.get(mission.id);
+        return participation?.status === query.participationStatus;
+      });
+    }
 
     if (query.sort === 'distance' && userLat !== undefined && userLon !== undefined) {
       missionsWithDistance.sort((a, b) => a.distanceMeters - b.distanceMeters);

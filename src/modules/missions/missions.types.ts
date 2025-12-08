@@ -11,6 +11,7 @@ export class MissionsQueryDto {
   limit?: number;
   lat?: number;
   lon?: number;
+  participationStatus?: 'in_progress' | 'completed';
 }
 
 export class MissionIdParamDto {
