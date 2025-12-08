@@ -510,6 +510,14 @@ async function seed() {
   const userRepo = dataSource.getRepository(User);
   const categoryRepo = dataSource.getRepository(Category);
   const missionRepo = dataSource.getRepository(Mission);
+  const likeRepo = dataSource.getRepository(MissionLike);
+  const participationRepo = dataSource.getRepository(MissionParticipation);
+
+  console.log('Clearing mission likes...');
+  await likeRepo.clear();
+
+  console.log('Clearing mission participations...');
+  await participationRepo.clear();
 
   console.log('Seeding users...');
   await userRepo.upsert(users, ['id']);
