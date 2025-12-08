@@ -67,7 +67,7 @@ export class MissionsService {
         })
         .filter((m): m is MissionResponseDto => !!m);
       if (ordered.length) {
-        return ordered;
+        return ordered.slice(0, limit);
       }
     }
 
