@@ -241,8 +241,8 @@ npm run test:e2e
 
 ## 🔗 Related projects
 
-- Frontend: [`../BNK_WEB`](../BNK_WEB)
-- ML recommendation service: [`../ML_API`](../ML_API)
+- Frontend: [`BNK_WEB`](https://github.com/BNKCHALLENGE/BNK_WEB)
+- ML recommendation service: [`ML_API`](https://github.com/BNKCHALLENGE/ML_API)
 
 ---
 
